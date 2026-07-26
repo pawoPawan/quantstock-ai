@@ -51,7 +51,7 @@ export default function HomePage() {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`http://localhost:8000/stocks/search?q=${encodeURIComponent(query)}`)
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/stocks/search?q=${encodeURIComponent(query)}`)
         const { results } = await res.json()
         setSuggestions(results?.slice(0, 8) || [])
         setShowSuggestions(true)

@@ -5,7 +5,7 @@ __pycache__/
 *.pyd
 .Python
 venv/
-quant/
+/quant/
 env/
 .env
 *.egg-info/
