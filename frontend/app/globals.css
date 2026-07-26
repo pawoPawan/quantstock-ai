@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    @apply bg-bg-primary text-text-primary;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans antialiased bg-bg-primary text-text-primary;
+    background-image:
+      linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-bg-primary; }
+  ::-webkit-scrollbar-thumb { @apply bg-bg-border rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { background: #444; }
+}
+
+@layer components {
+  .card {
+    @apply bg-bg-card border border-bg-border rounded-xl p-4;
+  }
+
+  .card-elevated {
+    @apply bg-bg-elevated border border-bg-border rounded-xl p-4;
+  }
+
+  .metric-value {
+    @apply font-mono text-xl font-semibold text-text-primary;
+  }
+
+  .metric-label {
+    @apply text-xs text-text-muted uppercase tracking-wider;
+  }
+
+  .badge-bull {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-bull-muted text-bull;
+  }
+
+  .badge-bear {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-bear-muted text-bear;
+  }
+
+  .badge-neutral {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-bg-elevated text-text-secondary;
+  }
+
+  .section-title {
+    @apply text-sm font-semibold text-text-secondary uppercase tracking-widest mb-3;
+  }
+
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th {
+    @apply text-left text-xs font-medium text-text-muted py-2 px-3 border-b border-bg-border;
+  }
+
+  .data-table td {
+    @apply py-2 px-3 border-b border-bg-border/50 font-mono text-xs;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-bg-hover;
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(0, 200, 83, 0.15);
+  }
+
+  .glow-red {
+    box-shadow: 0 0 20px rgba(255, 61, 61, 0.15);
+  }
+
+  /* Score gauge animation */
+  .score-ring {
+    transition: stroke-dashoffset 1s ease-in-out;
+  }
+}
+
+@layer utilities {
+  .text-bull { color: #00C853; }
+  .text-bear { color: #FF3D3D; }
+  .text-warn { color: #FFB800; }
+
+  .num-mono {
+    @apply font-mono tabular-nums;
+  }
+
+  .bg-gradient-bull {
+    background: linear-gradient(135deg, rgba(0, 200, 83, 0.1), rgba(0, 200, 83, 0.05));
+  }
+
+  .bg-gradient-bear {
+    background: linear-gradient(135deg, rgba(255, 61, 61, 0.1), rgba(255, 61, 61, 0.05));
+  }
+}
+
+/* Recharts overrides */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: #666 !important;
+  font-size: 11px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+.recharts-legend-item-text {
+  color: #a0a0a0 !important;
+  font-size: 11px !important;
+}
+
+/* Lightweight Charts overrides */
+.tv-chart-container {
+  border-radius: 8px;
+  overflow: hidden;
+}

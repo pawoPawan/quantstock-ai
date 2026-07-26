@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+quant/
+env/
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+.next/
+out/
+.env.local
+.env.production
+npm-debug.log*
+
+# OS
+.DS_Store
+*.swp
+*.swo
+
+# Docker
+*.log
