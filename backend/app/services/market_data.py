@@ -7,12 +7,25 @@ from typing import Optional, Dict, Any, List
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import requests
 
 from app.config import get_settings
 from app.core.cache import cache_get, cache_set
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Use a browser-like session so Yahoo Finance doesn't block cloud IPs
+_session = requests.Session()
+_session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+})
+
+
+def _ticker(symbol: str) -> yf.Ticker:
+    return yf.Ticker(symbol.upper(), session=_session)
 
 # Map friendly period/interval labels to yfinance params
 PERIOD_MAP = {
@@ -35,7 +48,7 @@ async def get_stock_info(ticker: str) -> Optional[Dict[str, Any]]:
         return cached
 
     try:
-        t = yf.Ticker(ticker.upper())
+        t = _ticker(ticker)
         info = t.info
 
         if not info or "regularMarketPrice" not in info and "currentPrice" not in info:
@@ -122,7 +135,7 @@ async def get_historical_prices(
         return cached
 
     try:
-        t = yf.Ticker(ticker.upper())
+        t = _ticker(ticker)
         df = t.history(period=yf_period, interval=yf_interval, auto_adjust=True)
 
         if df.empty:
@@ -166,7 +179,7 @@ async def get_financial_statements(ticker: str) -> Optional[Dict[str, Any]]:
         return cached
 
     try:
-        t = yf.Ticker(ticker.upper())
+        t = _ticker(ticker)
 
         income = _parse_financials(t.financials)
         quarterly_income = _parse_financials(t.quarterly_financials)
@@ -215,7 +228,7 @@ async def get_options_chain(ticker: str, expiry: Optional[str] = None) -> Option
         return cached
 
     try:
-        t = yf.Ticker(ticker.upper())
+        t = _ticker(ticker)
         expiry_dates = list(t.options) if t.options else []
 
         if not expiry_dates:
@@ -318,7 +331,7 @@ def _safe_int(val) -> Optional[int]:
 async def search_stocks(query: str) -> List[Dict[str, Any]]:
     """Search for stocks by ticker or company name."""
     try:
-        results = yf.Search(query, max_results=10)
+        results = yf.Search(query, max_results=10, session=_session)
         quotes = results.quotes if hasattr(results, "quotes") else []
         return [
             {
