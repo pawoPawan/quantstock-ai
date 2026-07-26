@@ -14,7 +14,8 @@ redis==5.0.1
 celery==5.3.4
 
 # Market Data
-yfinance==0.2.31
+yfinance>=0.2.40
+curl_cffi>=0.6.0
 yahooquery==2.3.7
 requests==2.31.0
 httpx==0.25.2

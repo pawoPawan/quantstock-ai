@@ -7,21 +7,22 @@ from typing import Optional, Dict, Any, List
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import requests
+
+try:
+    from curl_cffi.requests import Session as CurlSession
+    _session = CurlSession(impersonate="chrome")
+except Exception:
+    import requests as _req
+    _session = _req.Session()
+    _session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    })
 
 from app.config import get_settings
 from app.core.cache import cache_get, cache_set
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-
-# Use a browser-like session so Yahoo Finance doesn't block cloud IPs
-_session = requests.Session()
-_session.headers.update({
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-})
 
 
 def _ticker(symbol: str) -> yf.Ticker:
