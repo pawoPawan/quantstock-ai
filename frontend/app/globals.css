@@ -29,6 +29,16 @@
   ::-webkit-scrollbar-thumb:hover { background: #444; }
 }
 
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer components {
   .card {
     @apply bg-bg-card border border-bg-border rounded-xl p-4;

@@ -87,12 +87,12 @@ export default function StockPage() {
 
             {/* Tabs */}
             <div className="mt-4">
-              <div className="flex border-b border-bg-border mb-4 gap-1">
+              <div className="flex border-b border-bg-border mb-4 gap-1 overflow-x-auto scrollbar-hide">
                 {TABS.map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 text-xs font-medium transition-all border-b-2 -mb-px ${
+                    className={`px-4 py-2 text-xs font-medium transition-all border-b-2 -mb-px whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab
                         ? 'border-brand text-brand'
                         : 'border-transparent text-text-muted hover:text-text-secondary'
