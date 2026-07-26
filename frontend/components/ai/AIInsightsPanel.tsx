@@ -89,7 +89,7 @@ export default function AIInsightsPanel({ insights, score, compact }: Props) {
       {expanded && (
         <>
           {/* Pros */}
-          {insights.pros.length > 0 && (
+          {(insights.pros?.length ?? 0) > 0 && (
             <div className="card">
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle2 className="w-4 h-4 text-bull" />
@@ -107,7 +107,7 @@ export default function AIInsightsPanel({ insights, score, compact }: Props) {
           )}
 
           {/* Cons */}
-          {insights.cons.length > 0 && (
+          {(insights.cons?.length ?? 0) > 0 && (
             <div className="card">
               <div className="flex items-center gap-2 mb-3">
                 <XCircle className="w-4 h-4 text-bear" />
@@ -125,7 +125,7 @@ export default function AIInsightsPanel({ insights, score, compact }: Props) {
           )}
 
           {/* Risks */}
-          {insights.risks.length > 0 && (
+          {(insights.risks?.length ?? 0) > 0 && (
             <div className="card border-warn/20">
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle className="w-4 h-4 text-warn" />
@@ -143,7 +143,7 @@ export default function AIInsightsPanel({ insights, score, compact }: Props) {
           )}
 
           {/* Growth Drivers */}
-          {insights.growth_drivers.length > 0 && (
+          {(insights.growth_drivers?.length ?? 0) > 0 && (
             <div className="card">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-4 h-4 text-brand" />

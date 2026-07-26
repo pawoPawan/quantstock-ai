@@ -89,7 +89,7 @@ export default function ScoreCard({ score, insights }: Props) {
       <div className="border-t border-bg-border" />
 
       {/* Quick pros/cons */}
-      {insights.pros.length > 0 && (
+      {(insights?.pros?.length ?? 0) > 0 && (
         <div>
           <div className="section-title text-bull mb-2">Strengths</div>
           <ul className="space-y-1.5">
@@ -103,7 +103,7 @@ export default function ScoreCard({ score, insights }: Props) {
         </div>
       )}
 
-      {insights.cons.length > 0 && (
+      {(insights?.cons?.length ?? 0) > 0 && (
         <div>
           <div className="section-title text-bear mb-2">Risks</div>
           <ul className="space-y-1.5">

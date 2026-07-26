@@ -399,7 +399,7 @@ export default function QuantPanel({ quant }: Props) {
       )}
 
       {/* ── Monte Carlo ── */}
-      {mc && (
+      {mc?.simulations != null && (
         <div className="card">
           <div className="section-title mb-3">Monte Carlo Simulation — {mc.simulations.toLocaleString()} paths, 1-year horizon</div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -461,7 +461,7 @@ export default function QuantPanel({ quant }: Props) {
       )}
 
       {/* ── Kelly Criterion ── */}
-      {quant.kelly_criterion && (
+      {quant.kelly_criterion?.kelly_pct != null && (
         <div className="card">
           <div className="section-title mb-3">Kelly Criterion — Optimal Position Sizing</div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

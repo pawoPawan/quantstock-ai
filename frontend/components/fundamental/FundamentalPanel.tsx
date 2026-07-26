@@ -12,6 +12,14 @@ interface Props {
 }
 
 export default function FundamentalPanel({ fundamental, info }: Props) {
+  if (!fundamental || !fundamental.income_statements) {
+    return (
+      <div className="card text-text-muted text-sm text-center py-8">
+        Fundamental data unavailable for this ticker (indices and ETFs have no financial statements).
+      </div>
+    )
+  }
+
   const { income_statements, balance_sheets, cash_flows, dcf } = fundamental
 
   // Prepare chart data
@@ -117,7 +125,7 @@ export default function FundamentalPanel({ fundamental, info }: Props) {
       )}
 
       {/* DCF Valuation */}
-      {dcf && (
+      {dcf?.intrinsic_value != null && (
         <div className="card">
           <div className="section-title mb-3">DCF Valuation</div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -151,10 +159,12 @@ export default function FundamentalPanel({ fundamental, info }: Props) {
           </div>
 
           {/* DCF waterfall */}
-          <div className="text-xs text-text-muted">
-            Assumptions: {dcf.assumptions.growth_1_5yr}% growth (Y1-5) → {dcf.assumptions.growth_6_10yr}% (Y6-10) → {dcf.assumptions.terminal_growth_pct}% terminal.
-            WACC {dcf.assumptions.wacc_pct}%.
-          </div>
+          {dcf.assumptions && (
+            <div className="text-xs text-text-muted">
+              Assumptions: {dcf.assumptions.growth_1_5yr}% growth (Y1-5) → {dcf.assumptions.growth_6_10yr}% (Y6-10) → {dcf.assumptions.terminal_growth_pct}% terminal.
+              WACC {dcf.assumptions.wacc_pct}%.
+            </div>
+          )}
         </div>
       )}
 
