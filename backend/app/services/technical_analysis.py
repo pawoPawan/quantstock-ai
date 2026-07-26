@@ -9,6 +9,23 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
+def _nan_to_none(v) -> Optional[float]:
+    """Convert float NaN/Inf to None so FastAPI can serialize the result."""
+    if v is None:
+        return None
+    try:
+        f = float(v)
+        return None if (f != f or f == float('inf') or f == float('-inf')) else f
+    except Exception:
+        return None
+
+
+def _sr(v, digits: int = 4) -> Optional[float]:
+    """Safe round — returns None for NaN/Inf, otherwise rounds to digits."""
+    f = _nan_to_none(v)
+    return None if f is None else round(f, digits)
+
+
 def _signal(value: float, bull_cond: bool, bear_cond: bool) -> str:
     if bull_cond:
         return "bullish"
@@ -220,10 +237,10 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
 
     # ── RSI ──────────────────────────────────────────────────────────────────
     rsi = compute_rsi(close)
-    rsi_val = float(rsi.iloc[-1]) if not rsi.empty else None
+    rsi_val = _nan_to_none(rsi.iloc[-1]) if not rsi.empty else None
     result["rsi"] = {
-        "value": round(rsi_val, 2) if rsi_val else None,
-        "signal": _signal(rsi_val or 50, rsi_val < 30 if rsi_val else False, rsi_val > 70 if rsi_val else False),
+        "value": _sr(rsi_val, 2),
+        "signal": _signal(rsi_val or 50, bool(rsi_val and rsi_val < 30), bool(rsi_val and rsi_val > 70)),
         "description": "Relative Strength Index (14)",
         "formula": "RSI = 100 - 100/(1+RS), RS = Avg Gain / Avg Loss",
         "interpretation": (
@@ -236,14 +253,20 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
 
     # ── MACD ─────────────────────────────────────────────────────────────────
     macd_line, signal_line, histogram = compute_macd(close)
-    m, s, h = float(macd_line.iloc[-1]), float(signal_line.iloc[-1]), float(histogram.iloc[-1])
-    prev_h = float(histogram.iloc[-2]) if len(histogram) > 1 else h
+    m = _nan_to_none(macd_line.iloc[-1])
+    s = _nan_to_none(signal_line.iloc[-1])
+    h = _nan_to_none(histogram.iloc[-1])
+    prev_h = _nan_to_none(histogram.iloc[-2]) if len(histogram) > 1 else h
     result["macd"] = {
-        "macd": round(m, 4),
-        "signal": round(s, 4),
-        "histogram": round(h, 4),
-        "trend": "bullish" if m > s else "bearish",
-        "crossover": "bullish_cross" if h > 0 > prev_h else ("bearish_cross" if h < 0 < prev_h else "none"),
+        "macd": _sr(m, 4),
+        "signal": _sr(s, 4),
+        "histogram": _sr(h, 4),
+        "trend": "bullish" if (m is not None and s is not None and m > s) else "bearish",
+        "crossover": (
+            "bullish_cross" if (h is not None and prev_h is not None and h > 0 > prev_h)
+            else "bearish_cross" if (h is not None and prev_h is not None and h < 0 < prev_h)
+            else "none"
+        ),
         "formula": "MACD = EMA(12) - EMA(26); Signal = EMA(9) of MACD",
         "macd_series": _last_n(macd_line, 100),
         "signal_series": _last_n(signal_line, 100),
@@ -252,13 +275,18 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
 
     # ── ADX ──────────────────────────────────────────────────────────────────
     adx, plus_di, minus_di = compute_adx(high, low, close)
-    adx_val = float(adx.iloc[-1]) if not adx.empty else None
-    pdi, mdi = float(plus_di.iloc[-1]), float(minus_di.iloc[-1])
+    adx_val = _nan_to_none(adx.iloc[-1]) if not adx.empty else None
+    pdi = _nan_to_none(plus_di.iloc[-1])
+    mdi = _nan_to_none(minus_di.iloc[-1])
     result["adx"] = {
-        "value": round(adx_val, 2) if adx_val else None,
-        "plus_di": round(pdi, 2),
-        "minus_di": round(mdi, 2),
-        "signal": _signal(adx_val or 0, adx_val > 25 and pdi > mdi if adx_val else False, adx_val > 25 and mdi > pdi if adx_val else False),
+        "value": _sr(adx_val, 2),
+        "plus_di": _sr(pdi, 2),
+        "minus_di": _sr(mdi, 2),
+        "signal": _signal(
+            adx_val or 0,
+            bool(adx_val and pdi and mdi and adx_val > 25 and pdi > mdi),
+            bool(adx_val and pdi and mdi and adx_val > 25 and mdi > pdi),
+        ),
         "trend_strength": "strong" if adx_val and adx_val > 40 else "moderate" if adx_val and adx_val > 25 else "weak",
         "description": "Average Directional Index (14)",
         "formula": "ADX = EMA(|+DI - -DI| / (+DI + -DI) × 100)",
@@ -266,29 +294,32 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
 
     # ── ATR ──────────────────────────────────────────────────────────────────
     atr = compute_atr(high, low, close)
-    atr_val = float(atr.iloc[-1])
-    atr_pct = atr_val / float(close.iloc[-1]) * 100
+    atr_val = _nan_to_none(atr.iloc[-1])
+    curr_price = _nan_to_none(close.iloc[-1]) or 1.0
+    atr_pct = _nan_to_none((atr_val or 0) / curr_price * 100)
     result["atr"] = {
-        "value": round(atr_val, 4),
-        "pct_of_price": round(atr_pct, 2),
+        "value": _sr(atr_val, 4),
+        "pct_of_price": _sr(atr_pct, 2),
         "signal": "neutral",
         "description": "Average True Range (14) — volatility measure",
         "formula": "ATR = EMA(max(H-L, |H-C_prev|, |L-C_prev|))",
-        "interpretation": f"Daily range ~{atr_pct:.1f}% of price",
+        "interpretation": f"Daily range ~{atr_pct:.1f}% of price" if atr_pct is not None else "N/A",
     }
 
     # ── Bollinger Bands ───────────────────────────────────────────────────────
     bb_upper, bb_mid, bb_lower, bandwidth, pct_b = compute_bollinger_bands(close)
-    curr_pct_b = float(pct_b.iloc[-1])
-    bb_signal = "bullish" if curr_pct_b < 0.05 else "bearish" if curr_pct_b > 0.95 else "neutral"
+    curr_pct_b = _nan_to_none(pct_b.iloc[-1])
+    bb_signal = "bullish" if (curr_pct_b is not None and curr_pct_b < 0.05) else "bearish" if (curr_pct_b is not None and curr_pct_b > 0.95) else "neutral"
+    bw_last = _nan_to_none(bandwidth.iloc[-1])
+    bw_mean = _nan_to_none(bandwidth.rolling(50).mean().iloc[-1])
     result["bollinger_bands"] = {
-        "upper": round(float(bb_upper.iloc[-1]), 4),
-        "middle": round(float(bb_mid.iloc[-1]), 4),
-        "lower": round(float(bb_lower.iloc[-1]), 4),
-        "bandwidth": round(float(bandwidth.iloc[-1]), 4),
-        "pct_b": round(curr_pct_b, 4),
+        "upper": _sr(bb_upper.iloc[-1], 4),
+        "middle": _sr(bb_mid.iloc[-1], 4),
+        "lower": _sr(bb_lower.iloc[-1], 4),
+        "bandwidth": _sr(bw_last, 4),
+        "pct_b": _sr(curr_pct_b, 4),
         "signal": bb_signal,
-        "squeeze": bandwidth.iloc[-1] < bandwidth.rolling(50).mean().iloc[-1],
+        "squeeze": bool(bw_last is not None and bw_mean is not None and bw_last < bw_mean),
         "description": "Bollinger Bands (20, 2σ)",
         "formula": "Upper/Lower = SMA(20) ± 2×StdDev; %B = (Close-Lower)/(Upper-Lower)",
         "upper_series": _last_n(bb_upper, 100),
@@ -298,49 +329,56 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
 
     # ── Keltner Channels ──────────────────────────────────────────────────────
     kc_upper, kc_mid, kc_lower = compute_keltner_channels(high, low, close)
+    kc_u = _nan_to_none(kc_upper.iloc[-1])
+    kc_l = _nan_to_none(kc_lower.iloc[-1])
+    curr_c = _nan_to_none(close.iloc[-1])
     result["keltner_channels"] = {
-        "upper": round(float(kc_upper.iloc[-1]), 4),
-        "middle": round(float(kc_mid.iloc[-1]), 4),
-        "lower": round(float(kc_lower.iloc[-1]), 4),
-        "signal": "bullish" if float(close.iloc[-1]) > float(kc_upper.iloc[-1]) else (
-            "bearish" if float(close.iloc[-1]) < float(kc_lower.iloc[-1]) else "neutral"
+        "upper": _sr(kc_u, 4),
+        "middle": _sr(kc_mid.iloc[-1], 4),
+        "lower": _sr(kc_l, 4),
+        "signal": (
+            "bullish" if (curr_c is not None and kc_u is not None and curr_c > kc_u)
+            else "bearish" if (curr_c is not None and kc_l is not None and curr_c < kc_l)
+            else "neutral"
         ),
         "description": "Keltner Channels (EMA20, ATR×2)",
     }
 
     # ── Stochastic ────────────────────────────────────────────────────────────
     stoch_k, stoch_d = compute_stochastic(high, low, close)
-    k_val, d_val = float(stoch_k.iloc[-1]), float(stoch_d.iloc[-1])
-    prev_k, prev_d = float(stoch_k.iloc[-2]), float(stoch_d.iloc[-2])
+    k_val = _nan_to_none(stoch_k.iloc[-1])
+    d_val = _nan_to_none(stoch_d.iloc[-1])
+    prev_k = _nan_to_none(stoch_k.iloc[-2]) if len(stoch_k) > 1 else None
+    prev_d = _nan_to_none(stoch_d.iloc[-2]) if len(stoch_d) > 1 else None
     result["stochastic"] = {
-        "k": round(k_val, 2),
-        "d": round(d_val, 2),
+        "k": _sr(k_val, 2),
+        "d": _sr(d_val, 2),
         "signal": (
-            "bullish" if k_val < 20 or (k_val > d_val and prev_k < prev_d)
-            else "bearish" if k_val > 80 or (k_val < d_val and prev_k > prev_d)
+            "bullish" if (k_val is not None and (k_val < 20 or (d_val is not None and prev_k is not None and prev_d is not None and k_val > d_val and prev_k < prev_d)))
+            else "bearish" if (k_val is not None and (k_val > 80 or (d_val is not None and prev_k is not None and prev_d is not None and k_val < d_val and prev_k > prev_d)))
             else "neutral"
         ),
-        "overbought": k_val > 80,
-        "oversold": k_val < 20,
+        "overbought": bool(k_val is not None and k_val > 80),
+        "oversold": bool(k_val is not None and k_val < 20),
         "description": "Stochastic Oscillator (14, 3)",
         "formula": "%K = (C-LL14)/(HH14-LL14)×100; %D = SMA(%K,3)",
     }
 
     # ── Ichimoku ──────────────────────────────────────────────────────────────
     tenkan, kijun, senkou_a, senkou_b, chikou = compute_ichimoku(high, low, close)
-    curr_close = float(close.iloc[-1])
-    sa = float(senkou_a.iloc[-1]) if not np.isnan(senkou_a.iloc[-1]) else None
-    sb = float(senkou_b.iloc[-1]) if not np.isnan(senkou_b.iloc[-1]) else None
+    curr_close = _nan_to_none(close.iloc[-1])
+    sa = _nan_to_none(senkou_a.iloc[-1])
+    sb = _nan_to_none(senkou_b.iloc[-1])
     cloud_signal = "neutral"
-    if sa and sb:
+    if sa is not None and sb is not None and curr_close is not None:
         above_cloud = curr_close > max(sa, sb)
         below_cloud = curr_close < min(sa, sb)
         cloud_signal = "bullish" if above_cloud else ("bearish" if below_cloud else "neutral")
     result["ichimoku"] = {
-        "tenkan": round(float(tenkan.iloc[-1]), 4),
-        "kijun": round(float(kijun.iloc[-1]), 4),
-        "senkou_a": round(sa, 4) if sa else None,
-        "senkou_b": round(sb, 4) if sb else None,
+        "tenkan": _sr(tenkan.iloc[-1], 4),
+        "kijun": _sr(kijun.iloc[-1], 4),
+        "senkou_a": _sr(sa, 4),
+        "senkou_b": _sr(sb, 4),
         "signal": cloud_signal,
         "above_cloud": cloud_signal == "bullish",
         "description": "Ichimoku Kinko Hyo cloud system",
@@ -348,10 +386,11 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
 
     # ── SuperTrend ────────────────────────────────────────────────────────────
     st_line, st_dir = compute_supertrend(high, low, close)
-    st_signal = "bullish" if int(st_dir.iloc[-1]) == 1 else "bearish"
+    st_dir_val = int(st_dir.iloc[-1]) if not pd.isna(st_dir.iloc[-1]) else 1
+    st_signal = "bullish" if st_dir_val == 1 else "bearish"
     result["supertrend"] = {
-        "value": round(float(st_line.iloc[-1]), 4),
-        "direction": int(st_dir.iloc[-1]),
+        "value": _sr(st_line.iloc[-1], 4),
+        "direction": st_dir_val,
         "signal": st_signal,
         "description": "SuperTrend (10, 3)",
         "formula": "SuperTrend = (H+L)/2 ± Multiplier × ATR",
@@ -360,10 +399,12 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
     # ── OBV ───────────────────────────────────────────────────────────────────
     obv = compute_obv(close, volume)
     obv_ema = obv.ewm(span=20, adjust=False).mean()
+    obv_last = _nan_to_none(obv.iloc[-1])
+    obv_ema_last = _nan_to_none(obv_ema.iloc[-1])
     result["obv"] = {
-        "value": float(obv.iloc[-1]),
-        "ema20": float(obv_ema.iloc[-1]),
-        "signal": "bullish" if float(obv.iloc[-1]) > float(obv_ema.iloc[-1]) else "bearish",
+        "value": obv_last,
+        "ema20": obv_ema_last,
+        "signal": "bullish" if (obv_last is not None and obv_ema_last is not None and obv_last > obv_ema_last) else "bearish",
         "description": "On-Balance Volume",
         "formula": "OBV = Cumsum(direction × Volume)",
         "series": _last_n(obv, 100),
@@ -371,31 +412,31 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
 
     # ── CMF ───────────────────────────────────────────────────────────────────
     cmf = compute_cmf(high, low, close, volume)
-    cmf_val = float(cmf.iloc[-1])
+    cmf_val = _nan_to_none(cmf.iloc[-1])
     result["cmf"] = {
-        "value": round(cmf_val, 4),
-        "signal": "bullish" if cmf_val > 0.05 else ("bearish" if cmf_val < -0.05 else "neutral"),
+        "value": _sr(cmf_val, 4),
+        "signal": "bullish" if (cmf_val is not None and cmf_val > 0.05) else ("bearish" if (cmf_val is not None and cmf_val < -0.05) else "neutral"),
         "description": "Chaikin Money Flow (20)",
         "formula": "CMF = Σ(MFV) / Σ(Volume); MFV = ((C-L)-(H-C))/(H-L) × V",
     }
 
     # ── MFI ───────────────────────────────────────────────────────────────────
     mfi = compute_mfi(high, low, close, volume)
-    mfi_val = float(mfi.iloc[-1])
+    mfi_val = _nan_to_none(mfi.iloc[-1])
     result["mfi"] = {
-        "value": round(mfi_val, 2),
-        "signal": "bullish" if mfi_val < 20 else ("bearish" if mfi_val > 80 else "neutral"),
-        "overbought": mfi_val > 80,
-        "oversold": mfi_val < 20,
+        "value": _sr(mfi_val, 2),
+        "signal": "bullish" if (mfi_val is not None and mfi_val < 20) else ("bearish" if (mfi_val is not None and mfi_val > 80) else "neutral"),
+        "overbought": bool(mfi_val is not None and mfi_val > 80),
+        "oversold": bool(mfi_val is not None and mfi_val < 20),
         "description": "Money Flow Index (14) — volume-weighted RSI",
     }
 
     # ── VWAP ──────────────────────────────────────────────────────────────────
     vwap = compute_vwap(high, low, close, volume)
-    vwap_val = float(vwap.iloc[-1])
+    vwap_val = _nan_to_none(vwap.iloc[-1])
     result["vwap"] = {
-        "value": round(vwap_val, 4),
-        "signal": "bullish" if curr_close > vwap_val else "bearish",
+        "value": _sr(vwap_val, 4),
+        "signal": "bullish" if (curr_close is not None and vwap_val is not None and curr_close > vwap_val) else "bearish",
         "description": "Volume Weighted Average Price",
         "formula": "VWAP = Σ(Typical Price × Volume) / Σ(Volume)",
         "series": _last_n(vwap, 100),
@@ -441,7 +482,6 @@ def analyze_technical(df: pd.DataFrame) -> Dict[str, Any]:
     result["overall_signal"] = overall
     result["signal_counts"] = {"bullish": bull_count, "bearish": bear_count, "neutral": len(signals) - bull_count - bear_count}
 
-    # Attach closing price series for charting
     result["close_series"] = _last_n(close, 252)
     result["volume_series"] = _last_n(volume, 252)
 

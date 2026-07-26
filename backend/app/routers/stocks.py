@@ -58,7 +58,11 @@ async def get_technical(ticker: str, period: str = Query("1Y")):
     df.index = pd.to_datetime(df["timestamp"])
     df = df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
 
-    result = technical_analysis.analyze_technical(df)
+    try:
+        result = technical_analysis.analyze_technical(df)
+    except Exception as exc:
+        logger.error(f"Technical analysis failed for {ticker}: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Technical analysis error: {exc}")
     result["ticker"] = ticker.upper()
     await cache_set(cache_key, result, settings.cache_ttl_technical)
     return result
