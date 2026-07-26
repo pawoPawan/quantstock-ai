@@ -307,26 +307,6 @@ export default function QuantPanel({ quant }: Props) {
         </div>
       </div>
 
-      {/* ── Metric Cards (8-grid) ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        {metricCards.map(m => (
-          <div
-            key={m.label}
-            className="rounded-xl p-3 relative overflow-hidden"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--bg-border)',
-              borderTop: `3px solid ${metricColor(m.score)}`,
-            }}
-          >
-            <div className="text-text-muted uppercase tracking-wide mb-1" style={{ fontSize: 9 }}>{m.label}</div>
-            <div className="font-mono font-bold text-xl text-text-primary">{m.raw}</div>
-            <div className="mt-1 text-xs font-semibold" style={{ color: metricColor(m.score) }}>{m.badge}</div>
-            <div className="text-text-muted mt-1 italic" style={{ fontSize: 9 }}>{m.formula}</div>
-          </div>
-        ))}
-      </div>
-
       {/* ── Returns & Volatility header ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="card">
