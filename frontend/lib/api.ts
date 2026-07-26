@@ -1,7 +1,9 @@
 import axios from 'axios'
 import type { FullAnalysis, HistoricalData, TechnicalAnalysis, FundamentalAnalysis, QuantAnalysis, OptionsAnalysis, CompositeScore, AIInsights, SearchResult } from '@/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_URL = typeof window !== 'undefined'
+  ? '/api'
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
 
 const api = axios.create({
   baseURL: API_URL,
