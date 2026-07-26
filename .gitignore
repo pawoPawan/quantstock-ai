@@ -23,6 +23,7 @@ out/
 .env.local
 .env.production
 npm-debug.log*
+tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
