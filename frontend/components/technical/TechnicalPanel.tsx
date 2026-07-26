@@ -29,7 +29,7 @@ const INDICATOR_META: Record<string, { name: string; formula?: string }> = {
 
 export default function TechnicalPanel({ technical, compact }: Props) {
   const overall = technical.overall_signal || 'neutral'
-  const counts = technical.signal_counts || {}
+  const counts = (technical.signal_counts || {}) as { bullish?: number; neutral?: number; bearish?: number }
 
   const indicatorRows = [
     {
