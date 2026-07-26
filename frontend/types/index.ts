@@ -320,6 +320,7 @@ export interface QuantAnalysis {
   beta?: number
   alpha?: number
   r_squared?: number
+  correlation?: number
   capm_expected_return?: number
   var_95_1d?: number
   var_99_1d?: number

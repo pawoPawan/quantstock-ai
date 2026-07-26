@@ -4,7 +4,9 @@ const BACKEND = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 async function proxy(request: NextRequest, path: string[]): Promise<NextResponse> {
   const url = new URL(request.url)
-  const target = `${BACKEND}/${path.join('/')}${url.search}`
+  // Encode only truly unsafe chars (like ^) but preserve dots (needed for .NS tickers)
+  const encodedPath = path.map(seg => seg.replace(/\^/g, '%5E')).join('/')
+  const target = `${BACKEND}/${encodedPath}${url.search}`
 
   try {
     const res = await fetch(target, {

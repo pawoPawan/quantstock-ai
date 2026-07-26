@@ -267,22 +267,48 @@ async def get_full_analysis(ticker: str):
         df.index = pd.to_datetime(df["timestamp"])
         df = df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
 
-    tech = technical_analysis.analyze_technical(df) if not df.empty else {}
-    fund = fundamental_analysis.analyze_fundamental(ticker, info, raw_fin or {}) if raw_fin else {}
-    quant_data = quant_analysis.analyze_quant(ticker, prices or [info["price"]], mkt_prices, settings.risk_free_rate)
+    try:
+        tech = technical_analysis.analyze_technical(df) if not df.empty else {}
+    except Exception as exc:
+        logger.error(f"technical failed for {ticker}: {exc}", exc_info=True)
+        tech = {}
+
+    try:
+        fund = fundamental_analysis.analyze_fundamental(ticker, info, raw_fin or {}) if raw_fin else {}
+    except Exception as exc:
+        logger.error(f"fundamental failed for {ticker}: {exc}", exc_info=True)
+        fund = {}
+
+    try:
+        quant_data = quant_analysis.analyze_quant(ticker, prices or [info["price"]], mkt_prices, settings.risk_free_rate)
+    except Exception as exc:
+        logger.error(f"quant failed for {ticker}: {exc}", exc_info=True)
+        quant_data = {}
 
     opt_result = None
     if chain_data:
-        opt_result = options_analysis.analyze_options(
-            ticker, info["price"],
-            chain_data.get("chain", []),
-            prices or [info["price"]],
-            chain_data.get("expiry_dates", []),
-            chain_data.get("selected_expiry", ""),
-        )
+        try:
+            opt_result = options_analysis.analyze_options(
+                ticker, info["price"],
+                chain_data.get("chain", []),
+                prices or [info["price"]],
+                chain_data.get("expiry_dates", []),
+                chain_data.get("selected_expiry", ""),
+            )
+        except Exception as exc:
+            logger.error(f"options failed for {ticker}: {exc}", exc_info=True)
 
-    score = scoring_engine.compute_composite_score(ticker, info, tech, fund, quant_data, opt_result)
-    insights = ai_insights.generate_insights(ticker, info, tech, fund, quant_data, opt_result, score)
+    try:
+        score = scoring_engine.compute_composite_score(ticker, info, tech, fund, quant_data, opt_result)
+    except Exception as exc:
+        logger.error(f"scoring failed for {ticker}: {exc}", exc_info=True)
+        score = {}
+
+    try:
+        insights = ai_insights.generate_insights(ticker, info, tech, fund, quant_data, opt_result, score)
+    except Exception as exc:
+        logger.error(f"insights failed for {ticker}: {exc}", exc_info=True)
+        insights = {}
 
     result = {
         "ticker": ticker.upper(),
