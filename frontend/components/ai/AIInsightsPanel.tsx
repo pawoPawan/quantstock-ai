@@ -14,6 +14,15 @@ interface Props {
 export default function AIInsightsPanel({ insights, score, compact }: Props) {
   const [expanded, setExpanded] = useState(!compact)
 
+  // Guard: if insights or score failed to load, show a minimal placeholder
+  if (!insights || !insights.rating) {
+    return (
+      <div className="card text-text-muted text-sm text-center py-8">
+        AI insights unavailable for this ticker (no company financials or options data).
+      </div>
+    )
+  }
+
   const ratingColors: Record<string, string> = {
     'Strong Buy': 'text-bull border-bull',
     'Buy': 'text-[#69F0AE] border-[#69F0AE]',
@@ -50,19 +59,19 @@ export default function AIInsightsPanel({ insights, score, compact }: Props) {
         {/* Score breakdown mini grid */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {[
-            { label: 'Fundamental', dim: score.fundamental_score },
-            { label: 'Technical', dim: score.technical_score },
-            { label: 'Quant', dim: score.quant_score },
-            { label: 'Options', dim: score.options_score },
-            { label: 'Sentiment', dim: score.sentiment_score },
-            { label: 'Risk', dim: score.risk_score },
-          ].map(({ label, dim }) => (
+            { label: 'Fundamental', dim: score?.fundamental_score },
+            { label: 'Technical', dim: score?.technical_score },
+            { label: 'Quant', dim: score?.quant_score },
+            { label: 'Options', dim: score?.options_score },
+            { label: 'Sentiment', dim: score?.sentiment_score },
+            { label: 'Risk', dim: score?.risk_score },
+          ].filter(({ dim }) => dim != null).map(({ label, dim }) => (
             <div key={label} className="text-center bg-bg-elevated rounded-lg p-2">
               <div className="text-[10px] text-text-muted mb-1">{label}</div>
-              <div className="font-mono font-bold text-sm" style={{ color: scoreColor(dim.score) }}>
-                {Math.round(dim.score)}
+              <div className="font-mono font-bold text-sm" style={{ color: scoreColor(dim!.score) }}>
+                {Math.round(dim!.score)}
               </div>
-              <div className={`text-[10px] font-semibold ${gradeColor(dim.grade)}`}>{dim.grade}</div>
+              <div className={`text-[10px] font-semibold ${gradeColor(dim!.grade)}`}>{dim!.grade}</div>
             </div>
           ))}
         </div>
